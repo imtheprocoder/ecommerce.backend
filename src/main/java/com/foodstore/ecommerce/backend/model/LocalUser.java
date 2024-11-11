@@ -1,7 +1,11 @@
 package com.foodstore.ecommerce.backend.model;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -17,7 +21,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "local_user")
-public class LocalUser {
+public class LocalUser implements UserDetails{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -100,6 +104,7 @@ public class LocalUser {
         this.addresses = addresses;
     }
 
+    @JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id desc")
     private List<VerificationToken> verificationTokens = new ArrayList<>();
@@ -123,6 +128,37 @@ public class LocalUser {
         public void setEmailVerified(Boolean emailVerified) {
             this.emailVerified = emailVerified;
         }
+
+        @JsonIgnore
+        public Collection<? extends GrantedAuthority> getAuthorities() {
+            return List.of();
+        }
+
+        @JsonIgnore
+        public boolean isAccountNonExpired() {
+            // TODO Auto-generated method stub
+            return true;
+        }
+
+        @JsonIgnore
+        public boolean isAccountNonLocked() {
+            // TODO Auto-generated method stub
+            return true;
+        }
+
+        @JsonIgnore
+        public boolean isCredentialsNonExpired() {
+            // TODO Auto-generated method stub
+            return true;
+        }
+
+        @JsonIgnore
+        public boolean isEnabled() {
+            // TODO Auto-generated method stub
+            return true;
+        }
+
+        
         
     }
 

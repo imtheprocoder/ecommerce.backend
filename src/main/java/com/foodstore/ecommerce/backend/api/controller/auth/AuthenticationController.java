@@ -14,8 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.foodstore.ecommerce.backend.api.model.LoginBody;
 import com.foodstore.ecommerce.backend.api.model.LoginResponse;
+import com.foodstore.ecommerce.backend.api.model.PasswordResetBody;
 import com.foodstore.ecommerce.backend.api.model.RegistrationBody;
 import com.foodstore.ecommerce.backend.exception.EmailFailureException;
+import com.foodstore.ecommerce.backend.exception.EmailNotFoundException;
 import com.foodstore.ecommerce.backend.exception.UserAlreadyExistsException;
 import com.foodstore.ecommerce.backend.exception.UserNotVerifiedException;
 import com.foodstore.ecommerce.backend.model.LocalUser;
@@ -91,6 +93,27 @@ public class AuthenticationController {
         return user;
     }
 
+
+    @PostMapping("/forgot")
+    public ResponseEntity forgotPassword(@RequestParam String email) {
+        try {
+            userService.forgotPassword(email);
+            return ResponseEntity.ok().build();
+        } catch (EmailNotFoundException ex) {
+            // TODO Auto-generated catch block
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (EmailFailureException e) {
+            // TODO Auto-generated catch block
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    
+    @PostMapping("/reset")
+    public ResponseEntity resetPassword(@Valid @RequestBody PasswordResetBody body) {
+        userService.resetPassword(body);
+        return ResponseEntity.ok().build();
+    }
 
 
 }

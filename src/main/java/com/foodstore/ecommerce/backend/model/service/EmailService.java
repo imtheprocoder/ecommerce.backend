@@ -7,6 +7,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import com.foodstore.ecommerce.backend.exception.EmailFailureException;
+import com.foodstore.ecommerce.backend.model.LocalUser;
 import com.foodstore.ecommerce.backend.model.VerificationToken;
 
 @Service
@@ -45,6 +46,20 @@ public class EmailService {
         }
     }
 
+
+
+    public void sendPasswordResetEmail(LocalUser user, String token) throws EmailFailureException {
+        SimpleMailMessage message = makeMailMessage();
+        message.setTo(user.getEmail());
+        message.setSubject("Your password reset request link.");
+        message.setText("You Requested a password reset on our website. Please " + "find the link below to be able to reset your password.\n" + url + "/auth/reset?token=" + token);
+        try {
+            javaMailSender.send(message);
+        } catch (MailException ex) {
+            throw new EmailFailureException();
+        }
+
+    }
 
 
 }

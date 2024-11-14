@@ -100,10 +100,8 @@ public class AuthenticationController {
             userService.forgotPassword(email);
             return ResponseEntity.ok().build();
         } catch (EmailNotFoundException ex) {
-            // TODO Auto-generated catch block
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (EmailFailureException e) {
-            // TODO Auto-generated catch block
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

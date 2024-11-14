@@ -29,25 +29,15 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class JWTRequestFilter extends OncePerRequestFilter implements ChannelInterceptor {
 
-    /** The JWT Service. */
     private JWTService jwtService;
-    /** The Local User DAO. */
     private LocalUserDAO localUserDAO;
 
-    /**
-     * Constructor for spring injection.
-     * 
-     * @param jwtService
-     * @param localUserDAO
-     */
     public JWTRequestFilter(JWTService jwtService, LocalUserDAO localUserDAO) {
         this.jwtService = jwtService;
         this.localUserDAO = localUserDAO;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -59,13 +49,6 @@ public class JWTRequestFilter extends OncePerRequestFilter implements ChannelInt
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Method to authenticate a token and return the Authentication object
-     * written to the spring security context.
-     * 
-     * @param token The token to test.
-     * @return The Authentication object if set.
-     */
     private UsernamePasswordAuthenticationToken checkToken(String token) {
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
@@ -88,9 +71,6 @@ public class JWTRequestFilter extends OncePerRequestFilter implements ChannelInt
         return null;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         SimpMessageType messageType = (SimpMessageType) message.getHeaders().get("simpMessageType");

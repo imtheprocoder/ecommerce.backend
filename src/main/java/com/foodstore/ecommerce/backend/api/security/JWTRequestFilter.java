@@ -2,8 +2,14 @@ package com.foodstore.ecommerce.backend.api.security;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.SimpMessageType;
+import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -21,47 +27,84 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-public class JWTRequestFilter extends OncePerRequestFilter {
+public class JWTRequestFilter extends OncePerRequestFilter implements ChannelInterceptor {
 
+    /** The JWT Service. */
     private JWTService jwtService;
+    /** The Local User DAO. */
     private LocalUserDAO localUserDAO;
 
-    
-
+    /**
+     * Constructor for spring injection.
+     * 
+     * @param jwtService
+     * @param localUserDAO
+     */
     public JWTRequestFilter(JWTService jwtService, LocalUserDAO localUserDAO) {
         this.jwtService = jwtService;
         this.localUserDAO = localUserDAO;
     }
 
-
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
         String tokenHeader = request.getHeader("Authorization");
-        if (tokenHeader != null && tokenHeader.startsWith("Bearer ")) {
-            String token = tokenHeader.substring(7);
-            try{
+        UsernamePasswordAuthenticationToken token = checkToken(tokenHeader);
+        if (token != null) {
+            token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        }
+        filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Method to authenticate a token and return the Authentication object
+     * written to the spring security context.
+     * 
+     * @param token The token to test.
+     * @return The Authentication object if set.
+     */
+    private UsernamePasswordAuthenticationToken checkToken(String token) {
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+            try {
                 String username = jwtService.getUsername(token);
                 Optional<LocalUser> opUser = localUserDAO.findByUsernameIgnoreCase(username);
                 if (opUser.isPresent()) {
                     LocalUser user = opUser.get();
                     if (user.isEmailVerified()) {
-                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, new ArrayList());
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                user, null, new ArrayList());
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                        return authentication;
                     }
-                    
                 }
+            } catch (JWTDecodeException ex) {
             }
-            catch(JWTDecodeException ex) {
-
-            }
-
         }
-
-        filterChain.doFilter(request, response);
+        SecurityContextHolder.getContext().setAuthentication(null);
+        return null;
     }
 
-
-    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Message<?> preSend(Message<?> message, MessageChannel channel) {
+        SimpMessageType messageType = (SimpMessageType) message.getHeaders().get("simpMessageType");
+        if (messageType.equals(SimpMessageType.SUBSCRIBE)
+                || messageType.equals(SimpMessageType.MESSAGE)) {
+            Map nativeHeaders = (Map) message.getHeaders().get("nativeHeaders");
+            if (nativeHeaders != null) {
+                List authTokenList = (List) nativeHeaders.get("Authorization");
+                if (authTokenList != null) {
+                    String tokenHeader = (String) authTokenList.get(0);
+                    checkToken(tokenHeader);
+                }
+            }
+        }
+        return message;
+    }
 }
